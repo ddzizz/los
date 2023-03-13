@@ -17,14 +17,13 @@ import (
 
 type Config struct {
 	Port         string `yaml:"port"`
-	StoragePaths string `yaml:"storage-paths"`
+	Buckets map[string]string `yaml:"buckets"`
 	Debug        bool   `yaml:"debug"`
 }
 
 func main() {
 	defaultCfg := Config{
 		Port:         "3000",
-		StoragePaths: "./storage",
 		Debug:        false,
 	}
 	cfg, err := LoadConfig("cfg.yaml")
@@ -50,15 +49,28 @@ func main() {
 	// app.Get("/user", func(c *fiber.Ctx) error {
 	// 	return c.SendString("Hello")
 	// })
-	app.Get("/storage/*", func(c *fiber.Ctx) error {
+	app.Get("/s/:key/*", func(c *fiber.Ctx) error {
+		key, err := url.PathUnescape(c.Params("key"))
+		if err != nil {
+			return c.Status(fiber.StatusNotFound).SendFile("./static/html/404.html")
+		}
+
 		params, err := url.PathUnescape(c.Params("*"))
 		if err != nil {
 			return c.Status(fiber.StatusNotFound).SendFile("./static/html/404.html")
 		}
-		if cfg.Debug == true {
-			return c.SendString(path.Join(cfg.StoragePaths, params))
+
+		bucket, ok := cfg.Buckets[key]
+		if !ok {
+			return c.Status(fiber.StatusNotFound).SendFile("./static/html/404.html")
 		}
-		return c.SendFile(path.Join(cfg.StoragePaths, params))
+
+		objPath := path.Join(bucket, params)
+		
+		if cfg.Debug == true {
+			return c.SendString(objPath)
+		}
+		return c.SendFile(objPath)
 	})
 
 	app.Static("/static", "./static")
