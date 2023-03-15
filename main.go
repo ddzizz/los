@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net/url"
-	"path"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -46,33 +44,35 @@ func main() {
 		return c.SendFile("./static/html/welcome.html")
 	})
 
-	// app.Get("/user", func(c *fiber.Ctx) error {
-	// 	return c.SendString("Hello")
+	// app.Get("/s/:key/*", func(c *fiber.Ctx) error {
+	// 	key, err := url.PathUnescape(c.Params("key"))
+	// 	if err != nil {
+	// 		return c.Status(fiber.StatusNotFound).SendFile("./static/html/404.html")
+	// 	}
+	//
+	// 	params, err := url.PathUnescape(c.Params("*"))
+	// 	if err != nil {
+	// 		return c.Status(fiber.StatusNotFound).SendFile("./static/html/404.html")
+	// 	}
+	//
+	// 	bucket, ok := cfg.Buckets[key]
+	// 	if !ok {
+	// 		return c.Status(fiber.StatusNotFound).SendFile("./static/html/404.html")
+	// 	}
+	//
+	// 	objPath := path.Join(bucket, params)
+	// 	
+	// 	if cfg.Debug == true {
+	// 		return c.SendString(objPath)
+	// 	}
+	// 	return c.SendFile(objPath)
 	// })
-	app.Get("/s/:key/*", func(c *fiber.Ctx) error {
-		key, err := url.PathUnescape(c.Params("key"))
-		if err != nil {
-			return c.Status(fiber.StatusNotFound).SendFile("./static/html/404.html")
-		}
 
-		params, err := url.PathUnescape(c.Params("*"))
-		if err != nil {
-			return c.Status(fiber.StatusNotFound).SendFile("./static/html/404.html")
-		}
+	for k, b := range cfg.Buckets {
+		app.Static("/s/" + k, b)
+	}
 
-		bucket, ok := cfg.Buckets[key]
-		if !ok {
-			return c.Status(fiber.StatusNotFound).SendFile("./static/html/404.html")
-		}
-
-		objPath := path.Join(bucket, params)
-		
-		if cfg.Debug == true {
-			return c.SendString(objPath)
-		}
-		return c.SendFile(objPath)
-	})
-
+	// app.Static("/assets", "./assets")
 	app.Static("/static", "./static")
 	app.Use(logger.New(logger.Config{
 		Format: "${time} ${status} - ${latency} ${method} ${path}\n",
