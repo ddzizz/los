@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+
+	"github.com/labstack/echo/v4"
+	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
@@ -28,19 +30,24 @@ func main() {
 		cfg = &defaultCfg
 	}
 
-	app := gin.Default()
+	e := echo.New()
 
 	// Routes
-	app.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "./static/html/welcome.html", nil)
+	e.GET("/", func(c echo.Context) error {
+		bs, err := os.ReadFile("./static/html/welcome.html")
+		if err != nil {
+			return err
+		}
+
+		return c.HTML(http.StatusOK, string(bs))
 	})
 
 	for k, b := range cfg.Buckets {
-		app.Static("/s/"+k, b)
+		e.Static("/s/"+k, b)
 	}
 
 	// app.Static("/assets", "./assets")
-	app.Static("/static", "./static")
+	e.Static("/static", "./static")
 	// app.Use(logger.New(logger.Config{
 	// 	Format: "${time} ${status} - ${latency} ${method} ${path}\n",
 	// 	// TimeFormat: "02-Jan-2006",
@@ -57,7 +64,7 @@ func main() {
 	// })
 	//
 	// Start server
-	log.Fatal(app.Run(":" + cfg.Port))
+	log.Fatal(e.Start(":" + cfg.Port))
 }
 
 func LoadConfig(path string) (*Config, error) {
