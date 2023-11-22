@@ -1,3 +1,5 @@
 port: 3000
-storage-paths: E:\Downloads\BaiduYun
+buckets: 
+  bucket1: bucket
+  bucket2: D:\Projects\Unity\Blade
 debug: false 
