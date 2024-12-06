@@ -2,12 +2,11 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"path"
 
-	"github.com/labstack/echo/v4"
 	"gopkg.in/yaml.v3"
 )
 
@@ -30,45 +29,24 @@ func main() {
 		cfg = &defaultCfg
 	}
 
-	e := echo.New()
-
-	// Routes
-	e.GET("/", func(c echo.Context) error {
-		bs, err := os.ReadFile("./static/html/welcome.html")
-		if err != nil {
-			return err
-		}
-
-		return c.HTML(http.StatusOK, string(bs))
-	})
+	fs := http.FileServer(http.Dir("./static"))
+	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
 	for k, b := range cfg.Buckets {
-		e.Static("/s/"+k, b)
+		pattern := path.Join("/s/", k, "/")
+		log.Printf("Handle pattern '%s' to %s\n", pattern, b)
+		http.Handle("/s/"+k+"/", http.StripPrefix(pattern, http.FileServer(http.Dir(b))))
 	}
 
-	// app.Static("/assets", "./assets")
-	e.Static("/static", "./static")
-	// app.Use(logger.New(logger.Config{
-	// 	Format: "${time} ${status} - ${latency} ${method} ${path}\n",
-	// 	// TimeFormat: "02-Jan-2006",
-	// 	TimeFormat: time.RFC3339Nano,
-	// 	TimeZone:   "Asia/Shanghai",
-	// }))
-	// app.Use(favicon.New(favicon.Config{
-	// 	File: "./static/icon/favicon.ico",
-	// 	URL:  "/favicon.ico",
-	// }))
-	//
-	// app.Use(func(c *fiber.Ctx) error {
-	// 	return c.Status(fiber.StatusNotFound).SendFile("./static/html/404.html")
-	// })
-	//
-	// Start server
-	log.Fatal(e.Start(":" + cfg.Port))
+	log.Print("Listening on :3000...")
+	err = http.ListenAndServe(":"+cfg.Port, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func LoadConfig(path string) (*Config, error) {
-	bytes, err := ioutil.ReadFile(path)
+	bytes, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
